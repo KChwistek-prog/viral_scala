@@ -11,3 +11,4 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 
 POST    /addUser            controllers.UserController.createUser()
 GET     /getUsers           controllers.UserController.getUsers()
+POST    /checkUser          controllers.UserController.checkUser()

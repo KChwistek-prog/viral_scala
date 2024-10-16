@@ -1,5 +1,6 @@
 package model
 
+import org.mindrot.jbcrypt.BCrypt
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.JdbcProfile
 import slick.lifted.ProvenShape
@@ -31,8 +32,9 @@ class UserRepository @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
   private val users = TableQuery[UserTable]
 
-  def createUser(firstName: String, lastName: String, userName: String, hashedPassword: String, role: String): Future[User] = {
+  def createUser(firstName: String, lastName: String, userName: String, plainPassword: String, role: String): Future[User] = {
     val newId = UUID.randomUUID()
+    val hashedPassword = BCrypt.hashpw(plainPassword, BCrypt.gensalt())
 
     db.run {
       (users.map(u => (u.id, u.firstName, u.lastName, u.userName, u.hashedPassword, u.role))
@@ -41,6 +43,14 @@ class UserRepository @Inject()(protected val dbConfigProvider: DatabaseConfigPro
         User(newId, firstName, lastName, userName, hashedPassword, role)
       }
         ) += (newId, firstName, lastName, userName, hashedPassword, role)
+    }
+  }
+
+  def checkCredentials(userName: String, password: String): Future[Boolean] = {
+    val userQuery = users.filter(_.userName === userName).result.headOption
+    db.run(userQuery).map {
+      case Some(user) => BCrypt.checkpw(password, user.hashedPassword)
+      case None => false
     }
   }
 
